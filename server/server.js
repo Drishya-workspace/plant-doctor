@@ -64,7 +64,7 @@ function providerError(provider, status, bodyText) {
   } else if (status >= 500) {
     error.publicMessage = `${provider} is temporarily unavailable. Try again shortly.`;
   } else {
-    error.publicMessage = `${provider} returned ${status}. Check Render logs for details.`;
+    error.publicMessage = `${provider} returned ${status}${detail ? `: ${detail}` : ""}`;
   }
   return error;
 }
