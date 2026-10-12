@@ -1,0 +1,4 @@
+{
+  "endpoint": "http://192.168.14.237:8787/api/plant-assistant",
+  "timeoutMs": 8000
+}

@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f5f8f5">
+  <title>Plant Doctor</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5.1 20 6.6 20 11c0 4.7-4.2 7.1-9 6.7"/><path d="M2 21c0-5.5 3.1-9.8 10-13"/></svg>
+      </div>
+      <div>
+        <strong>Plant Doctor</strong>
+        <span data-i18n="headerBadge">Offline leaf diagnosis</span>
+      </div>
+    </div>
+    <label class="language-control">
+      <span class="sr-only">Language</span>
+      <select id="language-select" aria-label="Language">
+        <option value="en">English</option>
+        <option value="hi">हिन्दी</option>
+      </select>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg>
+    </label>
+  </header>
+
+  <main class="app-main">
+    <section class="capture-section">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow" data-i18n="uploadTitle">Leaf scan</p>
+          <h1 data-i18n="uploadSub">Select a clear leaf photo</h1>
+        </div>
+        <span class="model-status" id="model-status">Loading model</span>
+      </div>
+
+      <div class="image-stage" id="image-stage">
+        <img id="preview-image" alt="Selected plant leaf" hidden>
+        <div class="stage-empty" id="stage-empty">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="m21 15-5-5L5 19"/></svg>
+          <strong data-i18n="emptyTitle">No leaf selected</strong>
+          <span data-i18n="emptySub">Use the camera or choose an existing photo</span>
+        </div>
+        <div class="image-loader" id="image-loader" hidden>
+          <span class="spinner"></span>
+          <span data-i18n="imageLoading">Preparing image</span>
+        </div>
+        <button class="icon-button clear-image" id="clear-image" type="button" aria-label="Remove photo" title="Remove photo" hidden>
+          <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="source-actions">
+        <button class="source-button camera" id="camera-button" type="button">
+          <span class="source-icon"><svg viewBox="0 0 24 24"><path d="M14.5 4 16 7h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h3l1.5-3z"/><circle cx="12" cy="13" r="3"/></svg></span>
+          <span><strong data-i18n="cameraAction">Take photo</strong><small data-i18n="cameraHint">Open camera</small></span>
+        </button>
+        <button class="source-button gallery" id="gallery-button" type="button">
+          <span class="source-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></span>
+          <span><strong data-i18n="galleryAction">Upload photo</strong><small data-i18n="galleryHint">Choose from gallery</small></span>
+        </button>
+      </div>
+
+      <button class="analyze-button" id="analyze-button" type="button" disabled>
+        <svg viewBox="0 0 24 24"><path d="m21 21-4.3-4.3"/><circle cx="11" cy="11" r="7"/><path d="M8 11h6M11 8v6"/></svg>
+        <span data-i18n="analyzeDisease">Analyze leaf</span>
+      </button>
+
+      <div class="photo-guidance">
+        <span><svg viewBox="0 0 24 24"><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"/><circle cx="12" cy="12" r="4"/></svg><span data-i18n="tip1">Natural light</span></span>
+        <span><svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg><span data-i18n="tip2">Fill the frame</span></span>
+        <span><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg><span data-i18n="tip5">Keep it sharp</span></span>
+      </div>
+    </section>
+
+    <section class="result-section" id="result-section" hidden aria-live="polite">
+      <div class="diagnosis-header">
+        <div>
+          <p class="eyebrow" data-i18n="diagnosisTitle">Diagnosis</p>
+          <h2 id="result-name">Disease name</h2>
+          <p id="result-crop">Crop</p>
+        </div>
+        <span class="severity-badge" id="severity-badge">Severity</span>
+      </div>
+
+      <div class="confidence-block">
+        <div class="confidence-row">
+          <span data-i18n="modelConfidence">Model confidence</span>
+          <strong id="confidence-value">0%</strong>
+        </div>
+        <div class="confidence-track"><span id="confidence-fill"></span></div>
+        <p class="confidence-note" id="confidence-note"></p>
+      </div>
+
+      <div class="result-grid">
+        <article class="info-card symptoms-card">
+          <div class="card-icon"><svg viewBox="0 0 24 24"><path d="M12 22c5-3 8-6.5 8-12V5l-8-3-8 3v5c0 5.5 3 9 8 12Z"/><path d="m9 12 2 2 4-4"/></svg></div>
+          <div><h3 data-i18n="symptomsLabel">Symptoms</h3><p id="result-symptoms"></p></div>
+        </article>
+        <article class="info-card cause-card">
+          <div class="card-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></div>
+          <div><h3 data-i18n="causeLabel">Cause</h3><p id="result-cause"></p></div>
+        </article>
+      </div>
+
+      <section class="remedy-section">
+        <div class="remedy-heading">
+          <div><p class="eyebrow" data-i18n="remediesTitle">Treatment plan</p><h3 data-i18n="remedySubtitle">Recommended next steps</h3></div>
+          <button class="icon-button" id="share-button" type="button" aria-label="Share report" title="Share report">
+            <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"/></svg>
+          </button>
+        </div>
+        <ol class="remedy-list" id="remedy-list"></ol>
+      </section>
+
+      <section class="ai-section" id="ai-section">
+        <button class="ai-open-button" id="ai-open-button" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a7 7 0 0 0-7 7v3.5A3.5 3.5 0 0 0 8.5 17H9v3l4-3h2.5A3.5 3.5 0 0 0 19 13.5V10a7 7 0 0 0-7-7Z"/><path d="M9 10h.01M12 10h.01M15 10h.01"/></svg>
+          <span>Ask Plant Doctor AI</span>
+        </button>
+
+        <div class="ai-chat" id="ai-chat" hidden>
+          <div class="ai-chat-header">
+            <div>
+              <p class="eyebrow">Follow-up assistant</p>
+              <h3>Ask about care, spread, prevention, or next steps</h3>
+            </div>
+            <span class="ai-status" id="ai-status">Offline assistant</span>
+          </div>
+          <details class="ai-settings">
+            <summary>Online AI connection</summary>
+            <label for="ai-endpoint">Backend URL</label>
+            <input id="ai-endpoint" type="url" inputmode="url" placeholder="http://server-ip:8787/api/plant-assistant">
+            <small>Run the backend on your PC/server with the API key. If it is unreachable, the app keeps answering offline.</small>
+          </details>
+          <div class="ai-messages" id="ai-messages" aria-live="polite"></div>
+          <form class="ai-form" id="ai-form">
+            <label class="sr-only" for="ai-input">Ask Plant Doctor AI</label>
+            <textarea id="ai-input" rows="2" placeholder="Ask a follow-up question..."></textarea>
+            <button class="icon-button ai-send" type="submit" aria-label="Send message" title="Send message">
+              <svg viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+            </button>
+          </form>
+          <p class="ai-note">The assistant cannot change the original ML prediction. Check product labels and local expert guidance before chemical use.</p>
+        </div>
+      </section>
+
+      <section class="alternatives-section">
+        <p class="eyebrow" data-i18n="otherMatches">Other possible matches</p>
+        <div class="alternatives" id="alternatives"></div>
+      </section>
+
+      <p class="disclaimer" data-i18n="disclaimer">Use this result as guidance. Confirm serious disease or chemical treatment with a local agriculture professional.</p>
+    </section>
+  </main>
+
+  <div class="analysis-overlay" id="analysis-overlay" hidden>
+    <div class="analysis-dialog">
+      <span class="spinner large"></span>
+      <strong data-i18n="analyzing">Analyzing leaf</strong>
+      <span id="analysis-step">Preparing image features</span>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
