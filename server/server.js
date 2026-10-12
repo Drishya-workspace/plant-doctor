@@ -1,9 +1,9 @@
 import http from "node:http";
 
 const PORT = Number(process.env.PORT || 8787);
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
+const OPENAI_API_KEY = cleanSecret(process.env.OPENAI_API_KEY);
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
+const GEMINI_API_KEY = cleanSecret(process.env.GEMINI_API_KEY);
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-1.5-flash";
 
 const server = http.createServer(async (req, res) => {
@@ -14,7 +14,11 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   if (req.method === "GET" && req.url === "/health") {
-    sendJson(res, 200, { ok: true, provider: OPENAI_API_KEY ? "openai" : GEMINI_API_KEY ? "gemini" : "none" });
+    sendJson(res, 200, {
+      ok: true,
+      provider: OPENAI_API_KEY ? "openai" : GEMINI_API_KEY ? "gemini" : "none",
+      model: OPENAI_API_KEY ? OPENAI_MODEL : GEMINI_API_KEY ? GEMINI_MODEL : null
+    });
     return;
   }
   if (req.method !== "POST" || req.url !== "/api/plant-assistant") {
@@ -25,24 +29,45 @@ const server = http.createServer(async (req, res) => {
   try {
     const body = await readJson(req);
     validatePayload(body);
-    const answer = OPENAI_API_KEY
-      ? await askOpenAI(body)
-      : GEMINI_API_KEY
-        ? await askGemini(body)
-        : "";
-    if (!answer) {
+    if (!OPENAI_API_KEY && !GEMINI_API_KEY) {
       sendJson(res, 503, { error: "No online model configured" });
       return;
     }
+    const answer = OPENAI_API_KEY ? await askOpenAI(body) : await askGemini(body);
     sendJson(res, 200, { answer });
   } catch (error) {
-    sendJson(res, 500, { error: error.message || "Assistant failed" });
+    console.error("Assistant request failed:", error);
+    sendJson(res, error.statusCode || 502, {
+      error: error.publicMessage || error.message || "Assistant failed"
+    });
   }
 });
 
 server.listen(PORT, () => {
   console.log(`Plant Doctor assistant server listening on http://0.0.0.0:${PORT}`);
 });
+
+function cleanSecret(value) {
+  const secret = (value || "").trim();
+  if (!secret || secret.includes("your_") || secret === "your_key_here") return "";
+  return secret;
+}
+
+function providerError(provider, status, bodyText) {
+  const detail = bodyText ? bodyText.slice(0, 500) : "";
+  const error = new Error(`${provider} request failed: ${status}${detail ? ` - ${detail}` : ""}`);
+  error.statusCode = 502;
+  if (status === 401 || status === 403) {
+    error.publicMessage = `${provider} rejected the API key. Check the Render environment variable.`;
+  } else if (status === 429) {
+    error.publicMessage = `${provider} quota or rate limit reached. Check billing/usage for the API key.`;
+  } else if (status >= 500) {
+    error.publicMessage = `${provider} is temporarily unavailable. Try again shortly.`;
+  } else {
+    error.publicMessage = `${provider} returned ${status}. Check Render logs for details.`;
+  }
+  return error;
+}
 
 function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -119,9 +144,11 @@ async function askOpenAI(body) {
       max_tokens: 500
     })
   });
-  if (!response.ok) throw new Error(`OpenAI request failed: ${response.status}`);
+  if (!response.ok) throw providerError("OpenAI", response.status, await response.text());
   const data = await response.json();
-  return data.choices && data.choices[0] && data.choices[0].message ? data.choices[0].message.content : "";
+  const answer = data.choices && data.choices[0] && data.choices[0].message ? data.choices[0].message.content : "";
+  if (!answer) throw new Error("OpenAI returned an empty answer");
+  return answer;
 }
 
 async function askGemini(body) {
@@ -134,9 +161,11 @@ async function askGemini(body) {
       generationConfig: { temperature: 0.3, maxOutputTokens: 500 }
     })
   });
-  if (!response.ok) throw new Error(`Gemini request failed: ${response.status}`);
+  if (!response.ok) throw providerError("Gemini", response.status, await response.text());
   const data = await response.json();
-  return data.candidates && data.candidates[0] && data.candidates[0].content
+  const answer = data.candidates && data.candidates[0] && data.candidates[0].content
     ? data.candidates[0].content.parts.map((part) => part.text || "").join("")
     : "";
+  if (!answer) throw new Error("Gemini returned an empty answer");
+  return answer;
 }
