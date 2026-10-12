@@ -1,6 +1,7 @@
 {
   "name": "plant-doctor-assistant-server",
   "version": "1.0.0",
+  "description": "Plant Doctor AI assistant backend using Groq via OpenAI-compatible environment variable names",
   "private": true,
   "type": "module",
   "scripts": {
