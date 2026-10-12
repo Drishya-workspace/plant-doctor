@@ -2,7 +2,7 @@ import http from "node:http";
 
 const PORT = Number(process.env.PORT || 8787);
 const OPENAI_API_KEY = cleanSecret(process.env.OPENAI_API_KEY);
-const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "openai/gpt-oss-20b";
 const GEMINI_API_KEY = cleanSecret(process.env.GEMINI_API_KEY);
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-1.5-flash";
 
@@ -16,7 +16,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === "GET" && req.url === "/health") {
     sendJson(res, 200, {
       ok: true,
-      provider: OPENAI_API_KEY ? "openai" : GEMINI_API_KEY ? "gemini" : "none",
+      provider: OPENAI_API_KEY ? "groq" : GEMINI_API_KEY ? "gemini" : "none",
       model: OPENAI_API_KEY ? OPENAI_MODEL : GEMINI_API_KEY ? GEMINI_MODEL : null
     });
     return;
@@ -33,7 +33,7 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, 503, { error: "No online model configured" });
       return;
     }
-    const answer = OPENAI_API_KEY ? await askOpenAI(body) : await askGemini(body);
+    const answer = OPENAI_API_KEY ? await askGroq(body) : await askGemini(body);
     sendJson(res, 200, { answer });
   } catch (error) {
     console.error("Assistant request failed:", error);
@@ -130,8 +130,8 @@ function buildMessages(body) {
   ];
 }
 
-async function askOpenAI(body) {
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+async function askGroq(body) {
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${OPENAI_API_KEY}`,
@@ -144,10 +144,10 @@ async function askOpenAI(body) {
       max_tokens: 500
     })
   });
-  if (!response.ok) throw providerError("OpenAI", response.status, await response.text());
+  if (!response.ok) throw providerError("Groq", response.status, await response.text());
   const data = await response.json();
   const answer = data.choices && data.choices[0] && data.choices[0].message ? data.choices[0].message.content : "";
-  if (!answer) throw new Error("OpenAI returned an empty answer");
+  if (!answer) throw new Error("Groq returned an empty answer");
   return answer;
 }
 
@@ -168,4 +168,3 @@ async function askGemini(body) {
     : "";
   if (!answer) throw new Error("Gemini returned an empty answer");
   return answer;
-}
