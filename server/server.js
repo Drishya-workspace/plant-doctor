@@ -115,7 +115,10 @@ function systemPrompt() {
     "Do not invent pesticide dosages, spray intervals, restricted chemicals, or unsupported diagnoses.",
     "For chemical treatment, tell the user to follow local agricultural guidance and the product label.",
     "If confidence is low or the question is outside the provided context, say so and recommend local expert guidance.",
-    "Keep answers concise, practical, and mobile-friendly."
+    "Keep answers concise, practical, and mobile-friendly.",
+    "Do not use Markdown tables. Do not use pipe-table formatting.",
+    "Use this format: a short summary sentence, then 3 to 5 numbered action steps, then one safety note if needed.",
+    "Plain Markdown bullets or numbered lists are okay; avoid wide layouts that wrap badly on a phone."
   ].join("\n");
 }
 
